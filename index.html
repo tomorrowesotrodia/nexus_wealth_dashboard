@@ -37,7 +37,7 @@ small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);m
 <div class="card"><h3 style="margin-top:0">匯出檔案</h3><div class="row"><select id="exs"><option value="all">全部報表（單一 CSV）<option value="tpf">資產明細 Portfolio<option value="ttx">進出明細 Transactions<option value="tdg">當日漲幅 Daily Gain<option value="tix">指數狀態 Index<option value="tac">帳戶盈虧 Account<option value="tpl">總損益 P/L<option value="json">完整備份（JSON，可匯入）</select><button class="b" onclick="doExp()">⬇ 匯出</button></div><small>CSV 可直接用 Excel / Google 試算表開啟（含中文）。</small></div></div>
 
 <div id="tx" class="tab"><h2>進出明細</h2><div class="card"><div class="row" id="txform"></div><small>新增交易後，Portfolio / Account / P/L 會自動重算。資料存於此瀏覽器，可用下方按鈕匯出 / 匯入 JSON 備份。</small>
-<div class="row" style="margin-top:8px"><button class="b" onclick="exp()">匯出備份</button><button class="b" style="background:var(--r)" onclick="wipe()">清除本機資料</button><input type="file" id="imp" accept=".json" onchange="imp(this)"></div>
+<div class="row" style="margin-top:8px"><button class="b" onclick="exp()">匯出備份</button><button class="b" style="background:var(--r)" onclick="wipe()">清除本機資料</button><input type="file" id="imp" onchange="imp(this)"></div>
 <table id="ttx"></table></div></div>
 <div id="pf" class="tab"><h2>資產明細</h2><div class="card"><div class="row"><b>股價來源</b><select id="src" onchange="S.src=this.value;save();render()"><option value="yahoo">Yahoo Finance（直接抓取）<option value="sheet">Google 試算表</select>
 <span id="sheetbox"><input id="sid" style="max-width:300px" placeholder="試算表 ID 或網址" onchange="setSid(this.value)"></span>
