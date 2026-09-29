@@ -19,7 +19,7 @@ th:first-child,td:first-child,.l{text-align:left}th{background:var(--bg);color:v
 td:first-child,th:first-child{position:sticky;left:0;background:#fff;z-index:1}th:first-child{background:var(--bg)}
 tr.tot td{font-weight:700;background:#fafcfd}.pos{color:var(--g);font-weight:600}.neg{color:var(--r);font-weight:600}
 input,select{padding:9px 10px;border:1px solid var(--bd);border-radius:8px;font-size:16px;max-width:100%;background:#fff}
-input:focus{border-color:var(--g);outline:0}td input{width:104px;text-align:right;font-size:14px;padding:6px 8px}
+input:focus{border-color:var(--g);outline:0}td input{width:120px;text-align:right;font-size:14px;padding:6px 8px}
 button.b{background:var(--nav);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:15px;cursor:pointer}button.b:active{background:var(--hov)}button.b.big{width:100%;padding:14px;font-size:16px}
 button.x{background:none;border:0;color:var(--r);cursor:pointer;font-size:18px;padding:4px 8px}
 .bar{display:inline-block;height:8px;background:var(--g);border-radius:4px;vertical-align:middle;margin-left:6px}
@@ -28,13 +28,13 @@ button.x{background:none;border:0;color:var(--r);cursor:pointer;font-size:18px;p
 small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);margin:6px 2px 12px}
 </style></head><body>
 <div class="top">Nexus Wealth</div>
-<div class="nav"><button class="nav-btn active" data-t="main"><b>🏠</b>總覽</button><button class="nav-btn" data-t="pf"><b>📊</b>資產</button><button class="nav-btn" data-t="tx"><b>🧾</b>明細</button><button class="nav-btn" data-t="dg"><b>📈</b>當日</button><button class="nav-btn" data-t="ix"><b>🧭</b>指數</button><button class="nav-btn" data-t="ac"><b>🏦</b>帳戶</button><button class="nav-btn" data-t="pl"><b>💰</b>損益</button></div>
+<div class="nav"><button class="nav-btn active" data-t="main"><b>🏠</b>總覽</button><button class="nav-btn" data-t="pf"><b>📊</b>資產</button><button class="nav-btn" data-t="tx"><b>🧾</b>明細</button><button class="nav-btn" data-t="dg"><b>📈</b>當日</button><button class="nav-btn" data-t="ac"><b>🏦</b>帳戶</button><button class="nav-btn" data-t="pl"><b>💰</b>損益</button></div>
 <div class="main">
 <div id="main" class="tab active"><h2>資產總覽</h2><button class="b big" onclick="sync()">↻ 更新匯率與股價</button><div id="msg"></div><div class="grid" id="stats"></div>
 <div class="stat w" style="margin-bottom:18px"><h3>買房目標追蹤</h3><div class="row"><label>目標金額 (TWD)</label><input type="text" inputmode="numeric" id="goal" placeholder="4,200,000" oninput="goalIn(this)"></div>
 <div style="font-size:18px">與目標相差：<b id="gd"></b></div><small>差額 = 目標 − (美股 + 台股 + 基金 + 定存USD)　目前合計 <span id="gs"></span></small></div>
 <div class="card"><h3 style="margin-top:0">資產佔比</h3><table id="tmain"></table></div>
-<div class="card"><h3 style="margin-top:0">匯出檔案</h3><div class="row"><select id="exs"><option value="all">全部報表（單一 CSV）<option value="tpf">資產明細 Portfolio<option value="ttx">進出明細 Transactions<option value="tdg">當日漲幅 Daily Gain<option value="tix">指數狀態 Index<option value="tac">帳戶盈虧 Account<option value="tpl">總損益 P/L<option value="json">完整備份（JSON，可匯入）</select><button class="b" onclick="doExp()">⬇ 匯出</button></div><small>CSV 可直接用 Excel / Google 試算表開啟（含中文）。</small></div></div>
+<div class="card"><h3 style="margin-top:0">匯出檔案</h3><div class="row"><select id="exs"><option value="all">全部報表（單一 CSV）<option value="tpf">資產明細 Portfolio<option value="ttx">進出明細 Transactions<option value="tdg">當日漲幅 Daily Gain<option value="tac">帳戶盈虧 Account<option value="tpl">總損益 P/L<option value="json">完整備份（JSON，可匯入）</select><button class="b" onclick="doExp()">⬇ 匯出</button></div><small>CSV 可直接用 Excel / Google 試算表開啟（含中文）。</small></div></div>
 
 <div id="tx" class="tab"><h2>進出明細</h2><div class="card"><div class="row" id="txform"></div><small>新增交易後，Portfolio / Account / P/L 會自動重算。資料存於此瀏覽器，可用下方按鈕匯出 / 匯入 JSON 備份。</small>
 <div class="row" style="margin-top:8px"><button class="b" onclick="exp()">匯出備份</button><button class="b" style="background:var(--r)" onclick="wipe()">清除本機資料</button><input type="file" id="imp" onchange="imp(this)"></div>
@@ -42,11 +42,10 @@ small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);m
 <div id="pf" class="tab"><h2>資產明細</h2><div class="card"><div class="row"><b>股價來源</b><select id="src" onchange="S.src=this.value;save();render()"><option value="yahoo">Yahoo Finance（直接抓取）<option value="sheet">Google 試算表</select>
 <span id="sheetbox"><input id="sid" style="max-width:300px" placeholder="試算表 ID 或網址" onchange="setSid(this.value)"></span>
 <button class="b" onclick="sync()">↻ 立即更新股價</button><label><input type="checkbox" id="auto" onchange="S.auto=this.checked;save();timer()"> 每 2 分鐘自動更新</label></div>
-<div class="row">USD/TWD <input type="number" step="any" id="fxin" onchange="setFx(this.value)"> <small id="fxsrc"></small> <a href="#" id="fxreset" onclick="setFx('');return false" style="font-size:12px">改回即時匯率</a></div><div id="pst" class="note">尚未更新，目前使用備份價</div>
+<div class="row">USD/TWD <input type="text" inputmode="decimal" id="fxin" oninput="fIn(this,2)" onchange="setFx(this.value)"> <small id="fxsrc"></small> <a href="#" id="fxreset" onclick="setFx('');return false" style="font-size:12px">改回即時匯率</a></div><div id="pst" class="note">尚未更新，目前使用備份價</div>
 <small>「目前單價」可直接修改（標示「手動」，優先於即時價，點「還原」恢復）。試算表需設為「知道連結的任何人可檢視」，會讀取 Portfolio、Daily Gain!A8、Index。</small></div>
 <div class="card"><table id="tpf"></table><p class="note">股價來自試算表 GOOGLEFINANCE（未連結時使用備份價）。基金請直接填「市值」與「成本」（原幣別）。</p></div></div>
 <div id="dg" class="tab"><h2>當日漲幅總結</h2><div class="grid" id="fxs"></div><div class="card"><table id="tdg"></table></div></div>
-<div id="ix" class="tab"><h2>各項指數狀態</h2><div class="card"><table id="tix"></table></div></div>
 <div id="ac" class="tab"><h2>各帳戶盈虧</h2><div class="card"><table id="tac"></table></div></div>
 <div id="pl" class="tab"><h2>總損益</h2><div class="card"><table id="tpl"></table></div>
 </div>
@@ -90,38 +89,28 @@ function calc(){
 function renderMain(c=calc()){
  const tot=Object.values(c.cat).reduce((a,b)=>a+b,0),sum=c.cat.美股+c.cat.台股+c.cat.基金+c.cat.定存USD,diff=S.goal-sum;
  $('stats').innerHTML=`<div class="stat"><h3>總資產 (TWD)</h3><div class="v">${f(tot)}</div></div><div class="stat w"><h3>買房資金 (美+台+基金+定存USD)</h3><div class="v">${f(sum)}</div></div>`+
-  `<div class="stat"><h3>今日損益 (TWD)</h3><div class="v ${cl(c.rows.reduce((a,r)=>a+r.day,0))}">${f(c.rows.reduce((a,r)=>a+r.day,0))}</div></div><div class="stat"><h3>USD/TWD（${S.fxSrc}）</h3><div class="v">${f(c.fx,4)}</div></div>`;
+  `<div class="stat"><h3>今日損益 (TWD)</h3><div class="v ${cl(c.rows.reduce((a,r)=>a+r.day,0))}">${f(c.rows.reduce((a,r)=>a+r.day,0))}</div></div><div class="stat"><h3>USD/TWD（${S.fxSrc}）</h3><div class="v">${fx2(c.fx)}</div></div>`;
  $('gs').textContent=f(sum);$('gd').className=diff>0?'neg':'pos';$('gd').textContent=diff>0?`還差 ${f(diff)} TWD`:`已達標，超出 ${f(-diff)} TWD`;
- tbl('tmain',['資產類別','台幣市值','佔比'],Object.entries(c.cat).map(([k,v])=>`<tr><td>${k}</td>${cell(v,0,0)}<td>${pc(v/tot)}<span class="bar" style="width:${Math.max(0,v/tot*120)}px"></span></td></tr>`).concat(`<tr class="tot"><td>總存款</td>${cell(tot,0,0)}<td>100%</td></tr>`));
+ tbl('tmain',['資產類別','台幣市值','佔比'],Object.entries(c.cat).map(([k,v])=>`<tr><td>${k}</td>${cell(v,0,0)}<td>${pc(v/tot)}</td></tr>`).concat(`<tr class="tot"><td>總存款</td>${cell(tot,0,0)}<td>100%</td></tr>`));
 }
 function render(){
- const c=calc();$('goal').value=f(S.goal);renderMain(c);$('sid').value=S.sid||'';$('auto').checked=!!S.auto;$('src').value=S.src;$('fxin').value=+S.fx.toFixed(4);$('fxsrc').textContent=S.fxSrc;$('fxsrc').className=S.fxLock?'neg':'pos';$('sheetbox').style.display=S.src=='sheet'?'':'none';
+ const c=calc();$('goal').value=f(S.goal);renderMain(c);$('sid').value=S.sid||'';$('auto').checked=!!S.auto;$('src').value=S.src;$('fxin').value=fx2(S.fx);$('fxsrc').textContent=S.fxSrc;$('fxsrc').className=S.fxLock?'neg':'pos';$('sheetbox').style.display=S.src=='sheet'?'':'none';
  // tx
  const ts=Object.keys(D.meta).concat(['TWD_TD','USD_TD','CASH']);
- if(!$('nt')){$('txform').innerHTML=`<input type="date" id="nd"><input id="nt" list="tl" placeholder="代碼"><datalist id="tl">${[...new Set(ts)].map(x=>`<option>${x}`).join('')}</datalist><select id="ny"><option>Buy<option>Sell</select><input type="number" id="ns" placeholder="股數"><input type="number" id="np" placeholder="單價(原幣)"><input type="number" id="nf" placeholder="手續費"><input type="number" id="nx" placeholder="交易稅"><select id="nb">${['國泰','玉山','將來','華南','台新','中國信託'].map(x=>`<option>${x}`).join('')}</select><button class="b" onclick="addTx()">＋ 新增</button>`;$('nd').valueAsDate=new Date()}
+ if(!$('nt')){$('txform').innerHTML=`<input type="date" id="nd"><input id="nt" list="tl" placeholder="代碼"><datalist id="tl">${[...new Set(ts)].map(x=>`<option>${x}`).join('')}</datalist><select id="ny"><option>Buy<option>Sell</select><input type="text" inputmode="decimal" id="ns" placeholder="股數" oninput="fIn(this,6)"><input type="text" inputmode="decimal" id="np" placeholder="單價(原幣)" oninput="fIn(this,4)"><input type="text" inputmode="decimal" id="nf" placeholder="手續費" oninput="fIn(this,2)"><input type="text" inputmode="decimal" id="nx" placeholder="交易稅" oninput="fIn(this,2)"><select id="nb">${['國泰','玉山','將來','華南','台新','中國信託'].map(x=>`<option>${x}`).join('')}</select><button class="b" onclick="addTx()">＋ 新增</button>`;$('nd').valueAsDate=new Date()}
  tbl('ttx',['日期','代碼','類別','股數','單價','手續費(TWD)','交易稅','平台','成交總額(TWD)',''],S.tx.map((t,i)=>[i,t]).reverse().map(([i,t])=>`<tr><td>${t[0]}</td><td class="l">${t[1]}</td><td class="${t[2]=='Buy'?'pos':'neg'}">${t[2]}</td><td>${f(t[3],4)}</td><td>${f(t[4],2)}</td><td>${f(t[5],2)}</td><td>${f(t[6],2)}</td><td>${t[7]}</td><td>${f(t[8])}</td><td><button class="x" onclick="S.tx.splice(${i},1);save();render()">✕</button></td></tr>`));
  // portfolio
  const R=c.rows.sort((a,b)=>b.mv-a.mv);
  tbl('tpf',['代碼','名稱','類別','持有股數','平均成本','目前單價','成本(TWD)','市值(TWD)','未實現損益','報酬率','今日漲跌'],R.map(r=>{
   const u=S.funds.findIndex(z=>z.code==r.k),fd=r.fund;
   return`<tr><td class="l">${r.k}</td><td class="l">${r.name}</td><td class="l">${r.cat}</td><td>${fd?'-':f(r.sh,4)}</td>`+
-  (fd?`<td><input type="number" value="${S.funds[u].cost}" onchange="S.funds[${u}].cost=+this.value;save();render()"></td><td>手動→</td><td>${f(r.cost)}</td><td><input type="number" value="${S.funds[u].mv}" onchange="S.funds[${u}].mv=+this.value;save();render()"> <small>${r.ccy}</small></td>`
-  :`<td>${f(r.avg,2)}</td><td><input type="number" step="any" value="${+r.price.toFixed(4)}" onchange="setPx('${r.k}',this.value)"><small class="${r.src=='手動'?'neg':r.src=='即時'?'pos':''}"> ${r.src}${r.src=='手動'?` <a href="#" onclick="setPx('${r.k}','');return false">還原</a>`:''}</small></td><td>${f(r.cost)}</td><td>${f(r.mv)}</td>`)+`${cell(r.pnl)}<td class="${cl(r.pnl)}">${pc(r.pnl/r.cost)}</td><td class="${cl(r.chg)}">${fd?'-':pc(r.chg)}</td></tr>`}));
+  (fd?`<td><input type="text" inputmode="decimal" value="${f(S.funds[u].cost,2)}" oninput="fIn(this)" onchange="setFund(${u},'cost',this.value)"></td><td>手動→</td><td>${f(r.cost)}</td><td><input type="text" inputmode="decimal" value="${f(S.funds[u].mv,2)}" oninput="fIn(this)" onchange="setFund(${u},'mv',this.value)"> <small>${r.ccy}</small></td>`
+  :`<td>${f(r.avg,2)}</td><td><input type="text" inputmode="decimal" value="${f(r.price,4)}" oninput="fIn(this,4)" onchange="setPx('${r.k}',this.value)"><small class="${r.src=='手動'?'neg':r.src=='即時'?'pos':''}"> ${r.src}${r.src=='手動'?` <a href="#" onclick="setPx('${r.k}','');return false">還原</a>`:''}</small></td><td>${f(r.cost)}</td><td>${f(r.mv)}</td>`)+`${cell(r.pnl)}<td class="${cl(r.pnl)}">${pc(r.pnl/r.cost)}</td><td class="${cl(r.chg)}">${fd?'-':pc(r.chg)}</td></tr>`}));
  // daily
  const dg={};['美股','台股'].forEach(k=>dg[k]={d:0,t:0,c:0,m:0});
  R.filter(r=>dg[r.cat]).forEach(r=>{const g=dg[r.cat];g.d+=r.day;g.t+=r.pnl;g.c+=r.cost;g.m+=r.mv});
- $('fxs').innerHTML=`<div class="stat"><h3>現匯率 USD/TWD</h3><div class="v">${f(c.fx,4)}</div></div>`;
+ $('fxs').innerHTML=`<div class="stat"><h3>現匯率 USD/TWD</h3><div class="v">${fx2(c.fx)}</div></div>`;
  tbl('tdg',['類別','Day Gain (USD)','Day Gain (TWD)','今日漲跌 %','Total Gain (USD)','Total Gain (TWD)','總報酬率'],Object.entries(dg).map(([k,g])=>`<tr><td class="l">${k}</td>${cell(g.d/c.fx,2)}${cell(g.d)}<td class="${cl(g.d)}">${pc(g.d/(g.m-g.d||1))}</td>${cell(g.t/c.fx,2)}${cell(g.t)}<td class="${cl(g.t)}">${pc(g.t/g.c)}</td></tr>`));
- // index
- const st=[ (v)=>v>=60?'🔴貪婪區：不追高，持股續抱':v<=40?'🟢恐慌區：盤勢穩定，分批進場':'🟡溫和震盪區：維持定期定額',
-  v=>v>=20?'🔴恐慌飆高：暫緩單筆加碼':v<=15?'🟢安全穩定：正常分配資金':'🟡溫和震盪：維持定期定額',
-  v=>v>=35?'🔴歷史極度昂貴：新資金轉定存/美債':v<=25?'🟢估值合理：按計畫布局':'🟡估值偏高：控制倉位',
-  v=>v>=30?'🔴科技股恐慌：切勿追高':v<=20?'🟢科技股穩定：持股續抱':'🟡溫和震盪：不追高',
-  v=>v>=22?'🔴估值偏高：不單筆追高':v<=16?'🟢估值便宜：加速扣款':'🟡長線合理：定期定額',
-  v=>v>=20?'🔴波動加劇：保守觀望':v<=17?'🟢安全健康：按計畫佈局':'🟡溫和震盪：觀望',
-  v=>v<=140?'🔴籌碼混亂：多單減碼':v>=160?'🟢籌碼健康：適度加碼':'🟡籌碼震盪：維持觀望',
-  v=>v<=-15000?'🔴主力看空：短線不加碼':v>=0?'🟢主力看多：順勢佈局':'🟡主力觀望：區間操作'];
- tbl('tix',['指標項目','所屬市場/策略','實時數據','較昨日變動','目前狀態'],S.idx.map((r,i)=>`<tr><td class="l">${r[0]}</td><td class="l">${r[1]||''}</td><td>${f(r[2],2)}</td><td class="${cl(r[3])}">${r[3]==null?'-':f(r[3],2)}</td><td class="l">${st[i]?st[i](+r[2]):''}</td></tr>`));
  // account
  let a=[0,0];
  tbl('tac',['銀行/券商','成本','盈虧','總和','報酬率'],Object.entries(c.acc).map(([b,v])=>{a[0]+=v.cost;a[1]+=v.pnl;return`<tr><td class="l">${b}</td>${cell(v.cost,0,0)}${cell(v.pnl)}${cell(v.cost+v.pnl,0,0)}<td class="${cl(v.pnl)}">${pc(v.pnl/v.cost)}</td></tr>`}).concat(`<tr class="tot"><td class="l">合計</td>${cell(a[0],0,0)}${cell(a[1])}${cell(a[0]+a[1],0,0)}<td class="${cl(a[1])}">${pc(a[1]/a[0])}</td></tr>`));
@@ -129,13 +118,17 @@ function render(){
  const cost=R.reduce((s,r)=>s+r.cost,0),mv=R.reduce((s,r)=>s+r.mv,0),un=mv-cost,tp=un+c.realized-c.fee-c.tax;
  tbl('tpl',['項目','金額 (TWD)'],[['總成本',cost,0],['市值 (股票+基金)',mv,0],['未實現損益',un,1],['手續費',-c.fee,1],['交易稅',-c.tax,1],['已實現損益',c.realized,1],['總損益 (Total P/L)',tp,1]].map(([k,v,x],i)=>`<tr class="${i==6?'tot':''}"><td class="l">${k}</td>${cell(v,0,x)}</tr>`));
 }
+function fIn(el,n=2){const r=el.value.replace(/[^\d.]/g,''),[i,d]=r.split('.');el.value=(i?f(+i):'')+(d!==undefined?'.'+d.slice(0,n):'')}
+const fx2=n=>isNaN(n)?'-':Number(n).toFixed(2);
+const pn=v=>parseFloat(String(v).replace(/,/g,''));
+function setFund(u,k,v){S.funds[u][k]=parseFloat(v.replace(/,/g,''))||0;save();render()}
 function goalIn(el){const d=el.value.replace(/\D/g,'');S.goal=+d||0;el.value=d?f(+d):'';save();renderMain()}
-function addTx(){const t=[$('nd').value,$('nt').value.trim(),$('ny').value,+$('ns').value,+$('np').value,+$('nf').value||0,+$('nx').value||0,$('nb').value];
+function addTx(){const t=[$('nd').value,$('nt').value.trim(),$('ny').value,pn($('ns').value)||0,pn($('np').value)||0,pn($('nf').value)||0,pn($('nx').value)||0,$('nb').value];
  if(!t[0]||!t[1]||!t[3]||!t[4])return alert('請填日期、代碼、股數、單價');
  if(!D.meta[t[1]]&&!DEP.includes(t[1])){const c=prompt(t[1]+' 是新代碼，請輸入類別：1=美股(USD) 2=台股(TWD)');if(c!='1'&&c!='2')return;D.meta[t[1]]={name:t[1],cat:c=='1'?'美股':'台股',ccy:c=='1'?'USD':'TWD',p:t[4],chg:0};S.meta=D.meta}
  const m=D.meta[t[1]],usd=(m&&m.ccy=='USD')||t[1]=='USD_TD';t.push(Math.round(t[3]*t[4]*(usd?S.fx:1)*100)/100);
  S.tx.push(t);S.tx.sort((a,b)=>a[0]<b[0]?-1:1);save();render()}
-const TN={tmain:'Main',tpf:'Portfolio',ttx:'Transactions',tdg:'Daily Gain',tix:'Index',tac:'Account',tpl:'P&L'};
+const TN={tmain:'Main',tpf:'Portfolio',ttx:'Transactions',tdg:'Daily Gain',tac:'Account',tpl:'P&L'};
 const tcsv=id=>[...$(id).rows].map(r=>[...r.cells].map(c=>{const i=c.querySelector('input');let v=(i?i.value:c.innerText).replace(/\s+/g,' ').trim();if(!i&&/^[-\d,.]+$/.test(v)&&v.length>1)v=v.replace(/,/g,'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n');
 function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([type=='csv'?'\ufeff'+text:text],{type:type=='csv'?'text/csv;charset=utf-8':'application/json'}));a.download=name;a.click()}
 function doExp(){const v=$('exs').value,d=new Date().toISOString().slice(0,10);render();
@@ -152,11 +145,11 @@ function csv(t){const o=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){con
 async function sheet(n){for(const s of [n,n+' ']){try{const r=await fetch(`https://docs.google.com/spreadsheets/d/${S.sid}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`);if(r.ok){const t=await r.text();if(!t.startsWith('<'))return csv(t)}}catch(e){}}throw n}
 const num=x=>{const v=parseFloat(String(x).replace(/[,%\s]/g,''));return isNaN(v)?null:v};
 const say=t=>{$('msg').textContent=t;$('pst').textContent=t};
-function setPx(k,v){if(v===''||isNaN(+v))delete S.man[k];else S.man[k]=+v;save();render()}
+function setPx(k,v){v=String(v).replace(/,/g,'');if(v===''||isNaN(+v))delete S.man[k];else S.man[k]=+v;save();render()}
 const ysym=k=>k.startsWith('TPE:')?k.slice(4)+'.TW':k.replace('.','-');
 async function yq(sym){const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d';
  for(const w of [x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?'+encodeURIComponent(x)]){
-  try{const r=await fetch(w(u));if(!r.ok)continue;const m=(await r.json()).chart.result[0].meta;if(m.regularMarketPrice)return{p:m.regularMarketPrice,c:m.chartPreviousClose?m.regularMarketPrice/m.chartPreviousClose-1:0,d:m.regularMarketPrice-(m.chartPreviousClose||m.regularMarketPrice)}}catch(e){}}
+  try{const r=await fetch(w(u));if(!r.ok)continue;const R=(await r.json()).chart.result[0],m=R.meta,cl=((R.indicators.quote[0]||{}).close||[]).filter(x=>x!=null),pv=cl.length>=2?cl[cl.length-2]:m.chartPreviousClose;if(m.regularMarketPrice)return{p:m.regularMarketPrice,c:pv?m.regularMarketPrice/pv-1:0,d:pv?m.regularMarketPrice-pv:0}}catch(e){}}
  throw sym}
 const okfx=v=>v>20&&v<50;
 async function updateFx(){
@@ -164,14 +157,13 @@ async function updateFx(){
  const src=[async()=>(await yq('USDTWD=X')).p,async()=>(await(await fetch('https://open.er-api.com/v6/latest/USD')).json()).rates.TWD,async()=>(await(await fetch('https://api.frankfurter.app/latest?from=USD&to=TWD')).json()).rates.TWD];
  for(const [i,fn] of src.entries())try{const v=await fn();if(okfx(v)){S.fx=v;S.fxSrc=['Yahoo','ExchangeRate-API','Frankfurter'][i]+' 即時';save();render();return true}}catch(e){}
  return false}
-function setFx(v){if(v===''||!okfx(+v)){S.fxLock=false;updateFx().then(ok=>{if(!ok)say('匯率取得失敗，沿用 '+f(S.fx,4))});return}S.fx=+v;S.fxLock=true;S.fxSrc='手動';save();render()}
+function setFx(v){v=String(v).replace(/,/g,'');if(v===''||!okfx(+v)){S.fxLock=false;updateFx().then(ok=>{if(!ok)say('匯率取得失敗，沿用 '+fx2(S.fx))});return}S.fx=+v;S.fxLock=true;S.fxSrc='手動';save();render()}
 async function syncYahoo(){
  say('向 Yahoo Finance 取得報價中…');const ks=Object.keys(D.meta).filter(k=>!DEP.includes(k)&&D.meta[k].cat!='基金');
  await updateFx();const rs=await Promise.allSettled(ks.map(k=>yq(ysym(k))));
  let ok=0;rs.forEach((r,i)=>{if(r.status=='fulfilled'){S.px[ks[i]]={p:r.value.p,c:r.value.c};ok++}});
- for(const [i,sy] of [[1,'^VIX'],[3,'^VXN']])try{const v=await yq(sy);const j=S.idx.findIndex(r=>String(r[0]).includes(i==1?'VIX (S':'VXN'));if(j>=0)S.idx[j]=[S.idx[j][0],S.idx[j][1],v.p,v.d]}catch(e){}
  if(!ok){say('Yahoo 取得失敗（瀏覽器限制或網路問題），可改用「Google 試算表」來源或手動輸入單價');return}
- S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${ok}/${ks.length} 檔，匯率 ${f(S.fx,4)}　${S.t}`)}
+ S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${ok}/${ks.length} 檔，匯率 ${fx2(S.fx)}　${S.t}`)}
 const nm=x=>String(x==null?'':x).replace(/\s+/g,'');
 const pct=x=>{const v=num(x);return v==null?0:/%/.test(x)||Math.abs(v)>1?v/100:v};
 async function gcsv(q){const r=await fetch(`https://docs.google.com/spreadsheets/d/${S.sid}/gviz/tq?tqx=out:csv${q}`);const t=await r.text();if(!r.ok||t.startsWith('<'))throw 0;return csv(t)}
