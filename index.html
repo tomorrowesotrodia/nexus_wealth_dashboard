@@ -147,10 +147,15 @@ const num=x=>{const v=parseFloat(String(x).replace(/[,%\s]/g,''));return isNaN(v
 const say=t=>{$('msg').textContent=t;$('pst').textContent=t};
 function setPx(k,v){v=String(v).replace(/,/g,'');if(v===''||isNaN(+v))delete S.man[k];else S.man[k]=+v;save();render()}
 const ysym=k=>k.startsWith('TPE:')?k.slice(4)+'.TW':k.replace('.','-');
-async function yq(sym){const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d';
- for(const w of [x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?'+encodeURIComponent(x)]){
-  try{const r=await fetch(w(u));if(!r.ok)continue;const R=(await r.json()).chart.result[0],m=R.meta,cl=((R.indicators.quote[0]||{}).close||[]).filter(x=>x!=null),pv=cl.length>=2?cl[cl.length-2]:m.chartPreviousClose;if(m.regularMarketPrice)return{p:m.regularMarketPrice,c:pv?m.regularMarketPrice/pv-1:0,d:pv?m.regularMarketPrice-pv:0}}catch(e){}}
+const WR=[x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?'+encodeURIComponent(x)];let wp=1;
+async function yq(sym){
+ for(const h of ['query1','query2'])for(const w of [wp,...[0,1,2].filter(i=>i!=wp)]){
+  const u=`https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`;
+  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),7000),r=await fetch(WR[w](u),{signal:c.signal});clearTimeout(t);if(!r.ok)continue;
+   const R=(await r.json()).chart.result[0],m=R.meta,cl=((R.indicators.quote[0]||{}).close||[]).filter(x=>x!=null),pv=cl.length>=2?cl[cl.length-2]:m.chartPreviousClose;
+   if(m.regularMarketPrice){wp=w;return{p:m.regularMarketPrice,c:pv?m.regularMarketPrice/pv-1:0,d:pv?m.regularMarketPrice-pv:0}}}catch(e){}}
  throw sym}
+async function pool(items,fn,n){const out=[];let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<items.length){const k=i++;try{out[k]=await fn(items[k])}catch(e){out[k]=null}}}));return out}
 const okfx=v=>v>20&&v<50;
 async function updateFx(){
  if(S.fxLock)return;
@@ -159,11 +164,16 @@ async function updateFx(){
  return false}
 function setFx(v){v=String(v).replace(/,/g,'');if(v===''||!okfx(+v)){S.fxLock=false;updateFx().then(ok=>{if(!ok)say('匯率取得失敗，沿用 '+fx2(S.fx))});return}S.fx=+v;S.fxLock=true;S.fxSrc='手動';save();render()}
 async function syncYahoo(){
- say('向 Yahoo Finance 取得報價中…');const ks=Object.keys(D.meta).filter(k=>!DEP.includes(k)&&D.meta[k].cat!='基金');
- await updateFx();const rs=await Promise.allSettled(ks.map(k=>yq(ysym(k))));
- let ok=0;rs.forEach((r,i)=>{if(r.status=='fulfilled'){S.px[ks[i]]={p:r.value.p,c:r.value.c};ok++}});
- if(!ok){say('Yahoo 取得失敗（瀏覽器限制或網路問題），可改用「Google 試算表」來源或手動輸入單價');return}
- S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${ok}/${ks.length} 檔，匯率 ${fx2(S.fx)}　${S.t}`)}
+ const ks=Object.keys(D.meta).filter(k=>!DEP.includes(k)&&D.meta[k].cat!='基金'),fresh=new Set();
+ say('向 Yahoo Finance 取得報價中…');await updateFx();
+ const run=async(list,n)=>{const rs=await pool(list,async k=>{const v=await yq(ysym(k));say(`取得報價中… ${fresh.size+1}/${ks.length}`);return v},n);
+  rs.forEach((v,i)=>{if(v){S.px[list[i]]={p:v.p,c:v.c};fresh.add(list[i])}})};
+ await run(ks,4);
+ for(let round=0;round<2;round++){const need=ks.filter(k=>!fresh.has(k));if(!need.length)break;await new Promise(r=>setTimeout(r,1500));await run(need,2)}
+ const bad=ks.filter(k=>!fresh.has(k));
+ if(!fresh.size){say('Yahoo 取得失敗（瀏覽器限制或網路問題），可改用「Google 試算表」來源或手動輸入單價');return}
+ S.t=new Date().toLocaleString('zh-TW');save();render();
+ say(`已更新 ${fresh.size}/${ks.length} 檔，匯率 ${fx2(S.fx)}　${S.t}`+(bad.length?`。未取得：${bad.join('、')}（沿用舊價，可再按一次更新）`:''))}
 const nm=x=>String(x==null?'':x).replace(/\s+/g,'');
 const pct=x=>{const v=num(x);return v==null?0:/%/.test(x)||Math.abs(v)>1?v/100:v};
 async function gcsv(q){const r=await fetch(`https://docs.google.com/spreadsheets/d/${S.sid}/gviz/tq?tqx=out:csv${q}`);const t=await r.text();if(!r.ok||t.startsWith('<'))throw 0;return csv(t)}
