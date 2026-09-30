@@ -190,9 +190,10 @@ async function syncYahoo(){
  if(need.length)await single(need);
  for(let round=0;round<3;round++){need=ks.filter(k=>!fresh.has(k));if(!need.length)break;await new Promise(r=>setTimeout(r,2000*(round+1)));await single(need)}
  const bad=ks.filter(k=>!fresh.has(k));
+ const nf=await syncFunds();if(nf){save();render()}
  if(!fresh.size){say('Yahoo 取得失敗（瀏覽器限制或網路問題），可改用「Google 試算表」來源或手動輸入單價');return}
  S.t=new Date().toLocaleString('zh-TW');save();render();
- say(`已更新 ${fresh.size}/${ks.length} 檔，匯率 ${fx2(S.fx)}　${S.t}`+(bad.length?`。未取得：${bad.join('、')}（沿用舊價，可再按一次更新）`:''))
+ say(`已更新 ${fresh.size}/${ks.length} 檔`+(nf?`、基金 ${nf} 檔`:'')+`，匯率 ${fx2(S.fx)}　${S.t}`+(bad.length?`。未取得：${bad.join('、')}（沿用舊價，可再按一次更新）`:''))
  }finally{busy=false}}
 const nm=x=>String(x==null?'':x).replace(/\s+/g,'');
 const pct=x=>{const v=num(x);return v==null?0:/%/.test(x)||Math.abs(v)>1?v/100:v};
@@ -208,7 +209,21 @@ function parseOne(g){ // 單一分頁：依標題文字自動定位
  if(ir>=0){const h=g[ir].map(nm),c0=h.indexOf('指標項目'),cm=h.findIndex(x=>x.includes('所屬')),cv=h.findIndex(x=>x.includes('實時')),cd=h.findIndex(x=>x.includes('較昨日'));
   const n=[];for(let i=ir+1;i<g.length&&g[i][c0]&&n.length<8;i++)n.push([g[i][c0],g[i][cm],num(g[i][cv]),cd>=0?num(g[i][cd]):null]);
   if(n.length&&n.every(r=>r[2]!=null))idx=n}
- return{px,fx,idx}}
+ return{px,fx,idx,funds:parseFunds(g)}}
+// 基金：讀「基金名稱 / 市值」區塊（可選欄位：幣別、成本），依名稱或代碼比對，找不到就新增
+function parseFunds(g){
+ const hr=g.findIndex(r=>r.some(c=>nm(c)=='基金名稱')&&r.some(c=>nm(c)=='市值'));if(hr<0)return null;
+ const H=g[hr].map(nm),cN=H.indexOf('基金名稱'),cM=H.indexOf('市值'),cK=H.indexOf('幣別'),cC=H.indexOf('成本'),out=[];
+ for(let i=hr+1;i<g.length;i++){const r=g[i],n=String(r[cN]||'').trim();if(!n)break;const mv=num(r[cM]);if(mv==null)continue;
+  out.push({name:n,mv,ccy:cK>=0?nm(r[cK]).toUpperCase():'',cost:cC>=0?num(r[cC]):null})}
+ return out}
+function applyFunds(L){let n=0;
+ L.forEach(x=>{const k=nm(x.name);
+  const u=S.funds.find(z=>nm(z.name)==k||nm(z.code)==k)||S.funds.find(z=>{const a=nm(z.name);return a&&(a.includes(k)||k.includes(a))});
+  if(u){u.mv=x.mv;if(x.cost>0)u.cost=x.cost}
+  else S.funds.push({code:x.name,name:x.name,ccy:x.ccy=='USD'?'USD':'TWD',cost:x.cost>0?x.cost:x.mv,mv:x.mv});
+  n++});return n}
+async function syncFunds(){if(!S.sid)return 0;try{const L=parseFunds(await gcsv(S.gid?'&gid='+S.gid:''));return L&&L.length?applyFunds(L):0}catch(e){return 0}}
 async function sync(){
  if(S.src=='yahoo')return syncYahoo();
  if(!S.sid){say('請先貼上試算表 ID');openTab('pf');return}
@@ -224,10 +239,10 @@ async function sync(){
    try{const x=await sheet('Index');const n=x.slice(1,9).map(r=>[r[0],r[1],num(r[2]),num(r[3])]);if(n.length&&n.every(r=>r[2]!=null))R.idx=n}catch(e){}
   }
   if(!Object.keys(R.px).length)throw 0;
-  S.px=R.px;
+  S.px=R.px;const nf=R.funds&&R.funds.length?applyFunds(R.funds):0;
   if(okfx(R.fx)&&!S.fxLock&&!/即時/.test(S.fxSrc)){S.fx=R.fx;S.fxSrc='試算表'}
   if(R.idx)S.idx=R.idx;
-  S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${Object.keys(R.px).length} 檔　${S.t}`);
+  S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${Object.keys(R.px).length} 檔`+(nf?`、基金 ${nf} 檔`:'')+`　${S.t}`);
  }catch(e){say('讀取失敗：請確認試算表 ID、分享權限（知道連結者可檢視），若資料不在第一個分頁請貼上含 gid 的完整網址')}
 }
 let tm;const timer=()=>{clearInterval(tm);if(S.auto)tm=setInterval(sync,120000)};
