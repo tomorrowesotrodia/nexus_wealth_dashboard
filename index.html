@@ -14,10 +14,11 @@ body{font-family:-apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengH
 .card,.stat{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);overflow-x:auto}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .stat{border-top:4px solid var(--nav);margin:0}.stat.w{border-top-color:var(--g)}.stat h3{margin:0 0 6px;font-size:12px;color:var(--lt);font-weight:500}.stat .v{font-size:19px;font-weight:700;word-break:break-all}
+.card{padding:12px 0}.card>small{display:block}.card>*:not(table){margin-left:12px;margin-right:12px}.card>table th:first-child,.card>table td:first-child{padding-left:14px}.card>table th:last-child,.card>table td:last-child{padding-right:14px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
 th:first-child,td:first-child,.l{text-align:left}th{background:var(--bg);color:var(--nav);font-weight:600}
-td:first-child,th:first-child{position:sticky;left:0;background:#fff;z-index:1}th:first-child{background:var(--bg)}
-tr.tot td{font-weight:700;background:#fafcfd}.pos{color:var(--g);font-weight:600}.neg{color:var(--r);font-weight:600}
+td:first-child,th:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--bd)}th:first-child{background:var(--bg)}
+tr.tot td{font-weight:700;background:#fafcfd}tr.tot td:first-child{background:#fafcfd}.pos{color:var(--g);font-weight:600}.neg{color:var(--r);font-weight:600}
 input,select{padding:9px 10px;border:1px solid var(--bd);border-radius:8px;font-size:16px;max-width:100%;background:#fff}
 input:focus{border-color:var(--g);outline:0}td input{width:120px;text-align:right;font-size:14px;padding:6px 8px}
 button.b{background:var(--nav);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:15px;cursor:pointer}button.b:active{background:var(--hov)}button.b.big{width:100%;padding:14px;font-size:16px}
@@ -39,10 +40,10 @@ small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);m
 <div id="tx" class="tab"><h2>進出明細</h2><div class="card"><div class="row" id="txform"></div><small>新增交易後，Portfolio / Account / P/L 會自動重算。資料存於此瀏覽器，可用下方按鈕匯出 / 匯入 JSON 備份。</small>
 <div class="row" style="margin-top:8px"><button class="b" onclick="exp()">匯出備份</button><button class="b" style="background:var(--r)" onclick="wipe()">清除本機資料</button><input type="file" id="imp" onchange="imp(this)"></div>
 <table id="ttx"></table></div></div>
-<div id="pf" class="tab"><h2>資產明細</h2><div class="card"><div class="row"><b>股價來源</b><select id="src" onchange="S.src=this.value;save();render()"><option value="yahoo">Yahoo Finance（直接抓取）<option value="sheet">Google 試算表</select>
+<div id="pf" class="tab"><h2>資產明細</h2><div class="card"><div class="row"><b>股價來源</b><select id="src" onchange="S.src=this.value;save();render()"><option value="sheet">Google 試算表<option value="yahoo">Yahoo Finance</select>
 <span id="sheetbox"><input id="sid" style="max-width:300px" placeholder="試算表 ID 或網址" onchange="setSid(this.value)"></span>
 <button class="b" onclick="sync()">↻ 立即更新股價</button><label><input type="checkbox" id="auto" onchange="S.auto=this.checked;save();timer()"> 每 2 分鐘自動更新</label></div>
-<div class="row">USD/TWD <input type="text" inputmode="decimal" id="fxin" oninput="fIn(this,2)" onchange="setFx(this.value)"> <small id="fxsrc"></small> <a href="#" id="fxreset" onclick="setFx('');return false" style="font-size:12px">改回即時匯率</a></div><div id="pst" class="note">尚未更新，目前使用備份價</div>
+<div class="row">USD/TWD <input type="text" inputmode="decimal" id="fxin" oninput="fIn(this,2)" onchange="setFx(this.value)"> <small id="fxsrc"></small> <a href="#" id="fxreset" onclick="setFx('');return false" style="font-size:12px">解除手動匯率</a></div><div id="pst" class="note">尚未更新，目前使用備份價</div>
 <small>「目前單價」可直接修改（標示「手動」，優先於即時價，點「還原」恢復）。試算表需設為「知道連結的任何人可檢視」，會讀取 Portfolio、Daily Gain!A8、Index。</small></div>
 <div class="card"><table id="tpf"></table><p class="note">股價來自試算表 GOOGLEFINANCE（未連結時使用備份價）。基金請直接填「市值」與「成本」（原幣別）。</p></div></div>
 <div id="dg" class="tab"><h2>當日漲幅總結</h2><div class="grid" id="fxs"></div><div class="card"><table id="tdg"></table></div></div>
@@ -52,7 +53,7 @@ small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);m
 <script>
 const D={"tx":[],"meta":{},"funds":[],"fx":31.7979,"idx":[["FEAR & GREED 指數","美股大盤",59.1,0.53],["VIX (S&P 500恐慌指數)","SPY/VOO/VEXC",16.07,1.2],["Shiller P/E (席勒市盈率)","美股全資產",41.62,0.46],["VXN (NASDAQ科技波動)","NVDA/AMD/AVGO/QQQ",22.13,1.26],["台灣大盤本益比","台積電 / 0050 / 006208 / 00922 / 009816",21.5,null],["台灣 VIX 指數","台幣現金",16.5,null],["大盤融資維持率","00878 / 0056 / 00919 / 00984A / 玉山金",160,null],["外資期貨未平倉口數",null,-15000,null]]}, $=id=>document.getElementById(id);
 const DEP=['TWD_TD','USD_TD','CASH'];
-let S={tx:D.tx,funds:D.funds,goal:0,fx:D.fx,px:{},idx:D.idx,sid:'',auto:false,man:{},src:'yahoo',fxLock:false,fxSrc:'備份'};
+let S={tx:D.tx,funds:D.funds,goal:0,fx:D.fx,px:{},idx:D.idx,sid:'',auto:false,man:{},src:'sheet',fxLock:false,fxSrc:'備份'};
 try{const s=JSON.parse(localStorage.getItem('nexus')||'null');if(s)S=Object.assign(S,s)}catch(e){}
 if(S.meta)Object.assign(D.meta,S.meta);
 const save=()=>{try{localStorage.setItem('nexus',JSON.stringify(S))}catch(e){}};
@@ -94,7 +95,7 @@ function renderMain(c=calc()){
  tbl('tmain',['資產類別','台幣市值','佔比'],Object.entries(c.cat).map(([k,v])=>`<tr><td>${k}</td>${cell(v,0,0)}<td>${pc(v/tot)}</td></tr>`).concat(`<tr class="tot"><td>總存款</td>${cell(tot,0,0)}<td>100%</td></tr>`));
 }
 function render(){
- const c=calc();$('goal').value=f(S.goal);renderMain(c);$('sid').value=S.sid||'';$('auto').checked=!!S.auto;$('src').value=S.src;$('fxin').value=fx2(S.fx);$('fxsrc').textContent=S.fxSrc;$('fxsrc').className=S.fxLock?'neg':'pos';$('sheetbox').style.display=S.src=='sheet'?'':'none';
+ const c=calc();$('goal').value=f(S.goal);renderMain(c);$('sid').value=S.sid||'';$('auto').checked=!!S.auto;$('src').value=S.src;$('sheetbox').style.display=S.src=='sheet'?'':'none';$('fxin').value=fx2(S.fx);$('fxsrc').textContent=S.fxSrc;$('fxsrc').className=S.fxLock?'neg':'pos';
  // tx
  const ts=Object.keys(D.meta).concat(['TWD_TD','USD_TD','CASH']);
  if(!$('nt')){$('txform').innerHTML=`<input type="date" id="nd"><input id="nt" list="tl" placeholder="代碼"><datalist id="tl">${[...new Set(ts)].map(x=>`<option>${x}`).join('')}</datalist><select id="ny"><option>Buy<option>Sell</select><input type="text" inputmode="decimal" id="ns" placeholder="股數" oninput="fIn(this,6)"><input type="text" inputmode="decimal" id="np" placeholder="單價(原幣)" oninput="fIn(this,4)"><input type="text" inputmode="decimal" id="nf" placeholder="手續費" oninput="fIn(this,2)"><input type="text" inputmode="decimal" id="nx" placeholder="交易稅" oninput="fIn(this,2)"><select id="nb">${['國泰','玉山','將來','華南','台新','中國信託'].map(x=>`<option>${x}`).join('')}</select><button class="b" onclick="addTx()">＋ 新增</button>`;$('nd').valueAsDate=new Date()}
@@ -148,24 +149,15 @@ const say=t=>{$('msg').textContent=t;$('pst').textContent=t};
 function setPx(k,v){v=String(v).replace(/,/g,'');if(v===''||isNaN(+v))delete S.man[k];else S.man[k]=+v;save();render()}
 const ysym=k=>k.startsWith('TPE:')?k.slice(4)+'.TW':k.replace('.','-');
 const WR=[x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?'+encodeURIComponent(x)];
-// 代理輪流使用並分散負載；被限流(429/403)的代理暫時排到最後，直連被 CORS 擋住則長時間停用
-const cool=[0,0,0];let rr=0;
-const porder=()=>{const s=rr++%3,o=[s,(s+1)%3,(s+2)%3],now=Date.now();return[...o.filter(w=>cool[w]<=now),...o.filter(w=>cool[w]>now)]};
-async function gj(u,w,ms=6000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
- try{const r=await fetch(WR[w](u),{signal:c.signal});if(!r.ok){if(r.status==429||r.status==403)cool[w]=Date.now()+8000;throw r.status}return await r.json()}
- catch(e){if(w==0&&e instanceof TypeError)cool[0]=Date.now()+600000;throw e}
- finally{clearTimeout(t)}}
-function ypar(R){const m=R.meta||{},q=R.indicators&&R.indicators.quote&&R.indicators.quote[0],cl=((q&&q.close)||R.close||[]).filter(x=>x!=null),
- p=m.regularMarketPrice!=null?m.regularMarketPrice:cl[cl.length-1],pv=cl.length>=2?cl[cl.length-2]:m.chartPreviousClose;
- return p==null?null:{p,c:pv?p/pv-1:0,d:pv?p-pv:0}}
-async function yq(sym){ // 單檔
- for(const h of ['query1','query2'])for(const w of porder()){
-  try{const j=await gj(`https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`,w);const v=ypar(j.chart.result[0]);if(v)return v}catch(e){}}
- throw sym}
-async function yb(syms){ // 一次請求查多檔（spark）
- const u=`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${syms.map(encodeURIComponent).join(',')}&range=5d&interval=1d`,out={};
- for(const w of porder()){try{const j=await gj(u,w,9000);((j.spark&&j.spark.result)||[]).forEach(o=>{const R=o.response&&o.response[0],v=R&&ypar(R);if(v)out[o.symbol]=v});if(Object.keys(out).length)return out}catch(e){}}
- return out}
+function yfetch(path){const u='https://query1.finance.yahoo.com'+path;
+ return Promise.any(WR.map(async w=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),6000);try{const r=await fetch(w(u),{signal:c.signal});if(!r.ok)throw 0;return await r.json()}finally{clearTimeout(t)}}))}
+async function yq(sym){const j=await yfetch('/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d');
+ const R=j.chart.result[0],m=R.meta,cl=((R.indicators.quote[0]||{}).close||[]).filter(x=>x!=null),pv=cl.length>=2?cl[cl.length-2]:m.chartPreviousClose;
+ if(!m.regularMarketPrice)throw sym;return{p:m.regularMarketPrice,c:pv?m.regularMarketPrice/pv-1:0,d:pv?m.regularMarketPrice-pv:0}}
+function sp(j){const out={},L=(j.spark&&j.spark.result)||Object.values(j).filter(x=>x&&x.symbol);
+ L.forEach(x=>{try{let cl,m={};if(x.response){const R=x.response[0];m=R.meta||{};cl=R.indicators.quote[0].close}else cl=x.close;
+  cl=(cl||[]).filter(v=>v!=null);const p=m.regularMarketPrice||cl[cl.length-1],pv=cl.length>=2?cl[cl.length-2]:(m.chartPreviousClose||x.chartPreviousClose);
+  if(p)out[x.symbol]={p,c:pv?p/pv-1:0,d:pv?p-pv:0}}catch(e){}});return out}
 async function pool(items,fn,n){const out=[];let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<items.length){const k=i++;try{out[k]=await fn(items[k])}catch(e){out[k]=null}}}));return out}
 const okfx=v=>v>20&&v<50;
 async function updateFx(){
@@ -173,28 +165,20 @@ async function updateFx(){
  const src=[async()=>(await yq('USDTWD=X')).p,async()=>(await(await fetch('https://open.er-api.com/v6/latest/USD')).json()).rates.TWD,async()=>(await(await fetch('https://api.frankfurter.app/latest?from=USD&to=TWD')).json()).rates.TWD];
  for(const [i,fn] of src.entries())try{const v=await fn();if(okfx(v)){S.fx=v;S.fxSrc=['Yahoo','ExchangeRate-API','Frankfurter'][i]+' 即時';save();render();return true}}catch(e){}
  return false}
-function setFx(v){v=String(v).replace(/,/g,'');if(v===''||!okfx(+v)){S.fxLock=false;updateFx().then(ok=>{if(!ok)say('匯率取得失敗，沿用 '+fx2(S.fx))});return}S.fx=+v;S.fxLock=true;S.fxSrc='手動';save();render()}
-let busy=false;
-async function syncYahoo(){
- if(busy)return;busy=true; // 避免自動更新與手動更新重疊，造成請求暴增被限流
- try{
- const ks=Object.keys(D.meta).filter(k=>!DEP.includes(k)&&D.meta[k].cat!='基金'),fresh=new Set();
- say('向 Yahoo Finance 取得報價中…');await updateFx();
- const put=(k,v)=>{if(v){S.px[k]={p:v.p,c:v.c};fresh.add(k)}},prog=()=>say(`取得報價中… ${fresh.size}/${ks.length}`);
- // 1) 批次：每 8 檔一個請求，2 個請求並行
- const chunks=[];for(let i=0;i<ks.length;i+=8)chunks.push(ks.slice(i,i+8));
- await pool(chunks,async ch=>{const r=await yb(ch.map(ysym));ch.forEach(k=>put(k,r[ysym(k)]));prog();render()},2);
- // 2) 沒抓到的改用單檔補抓，最多再重試 3 輪（逐輪拉長間隔）
- const single=list=>pool(list,async k=>{try{put(k,await yq(ysym(k)))}catch(e){}prog()},3);
- let need=ks.filter(k=>!fresh.has(k));
- if(need.length)await single(need);
- for(let round=0;round<3;round++){need=ks.filter(k=>!fresh.has(k));if(!need.length)break;await new Promise(r=>setTimeout(r,2000*(round+1)));await single(need)}
+function setFx(v){v=String(v).replace(/,/g,'');if(v===''||!okfx(+v)){S.fxLock=false;save();sync();return}S.fx=+v;S.fxLock=true;S.fxSrc='手動';save();render()}
+async function syncYahoo(fb){
+ const ks=Object.keys(D.meta).filter(k=>!DEP.includes(k)&&D.meta[k].cat!='基金'),fresh=new Set(),map={};ks.forEach(k=>map[ysym(k)]=k);
+ say('向 Yahoo Finance 取得報價中…');
+ const chunks=[];for(let i=0;i<ks.length;i+=10)chunks.push(ks.slice(i,i+10).map(ysym));
+ await Promise.all([updateFx(),...chunks.map(async c=>{try{const o=sp(await yfetch('/v8/finance/spark?symbols='+encodeURIComponent(c.join(','))+'&range=5d&interval=1d'));
+  Object.entries(o).forEach(([y,v])=>{const k=map[y];if(k){S.px[k]={p:v.p,c:v.c};fresh.add(k)}})}catch(e){}})]);
+ const need=ks.filter(k=>!fresh.has(k));
+ if(need.length){say(`批次取得 ${fresh.size}/${ks.length}，補抓其餘 ${need.length} 檔…`);
+  const rs=await pool(need,k=>yq(ysym(k)),3);rs.forEach((v,i)=>{if(v){S.px[need[i]]={p:v.p,c:v.c};fresh.add(need[i])}})}
  const bad=ks.filter(k=>!fresh.has(k));
- const nf=await syncFunds();if(nf){save();render()}
- if(!fresh.size){say('Yahoo 取得失敗（瀏覽器限制或網路問題），可改用「Google 試算表」來源或手動輸入單價');return}
+ if(!fresh.size){say('Yahoo 也取得失敗，請稍後再試，或手動輸入單價');return}
  S.t=new Date().toLocaleString('zh-TW');save();render();
- say(`已更新 ${fresh.size}/${ks.length} 檔`+(nf?`、基金 ${nf} 檔`:'')+`，匯率 ${fx2(S.fx)}　${S.t}`+(bad.length?`。未取得：${bad.join('、')}（沿用舊價，可再按一次更新）`:''))
- }finally{busy=false}}
+ say((fb?'試算表連線失敗，已改用 Yahoo。':'')+`已更新 ${fresh.size}/${ks.length} 檔，匯率 ${fx2(S.fx)}　${S.t}`+(bad.length?`。未取得：${bad.join('、')}（沿用舊價，可再按一次更新）`:''))}
 const nm=x=>String(x==null?'':x).replace(/\s+/g,'');
 const pct=x=>{const v=num(x);return v==null?0:/%/.test(x)||Math.abs(v)>1?v/100:v};
 async function gcsv(q){const r=await fetch(`https://docs.google.com/spreadsheets/d/${S.sid}/gviz/tq?tqx=out:csv${q}`);const t=await r.text();if(!r.ok||t.startsWith('<'))throw 0;return csv(t)}
@@ -209,25 +193,11 @@ function parseOne(g){ // 單一分頁：依標題文字自動定位
  if(ir>=0){const h=g[ir].map(nm),c0=h.indexOf('指標項目'),cm=h.findIndex(x=>x.includes('所屬')),cv=h.findIndex(x=>x.includes('實時')),cd=h.findIndex(x=>x.includes('較昨日'));
   const n=[];for(let i=ir+1;i<g.length&&g[i][c0]&&n.length<8;i++)n.push([g[i][c0],g[i][cm],num(g[i][cv]),cd>=0?num(g[i][cd]):null]);
   if(n.length&&n.every(r=>r[2]!=null))idx=n}
- return{px,fx,idx,funds:parseFunds(g)}}
-// 基金：讀「基金名稱 / 市值」區塊（可選欄位：幣別、成本），依名稱或代碼比對，找不到就新增
-function parseFunds(g){
- const hr=g.findIndex(r=>r.some(c=>nm(c)=='基金名稱')&&r.some(c=>nm(c)=='市值'));if(hr<0)return null;
- const H=g[hr].map(nm),cN=H.indexOf('基金名稱'),cM=H.indexOf('市值'),cK=H.indexOf('幣別'),cC=H.indexOf('成本'),out=[];
- for(let i=hr+1;i<g.length;i++){const r=g[i],n=String(r[cN]||'').trim();if(!n)break;const mv=num(r[cM]);if(mv==null)continue;
-  out.push({name:n,mv,ccy:cK>=0?nm(r[cK]).toUpperCase():'',cost:cC>=0?num(r[cC]):null})}
- return out}
-function applyFunds(L){let n=0;
- L.forEach(x=>{const k=nm(x.name);
-  const u=S.funds.find(z=>nm(z.name)==k||nm(z.code)==k)||S.funds.find(z=>{const a=nm(z.name);return a&&(a.includes(k)||k.includes(a))});
-  if(u){u.mv=x.mv;if(x.cost>0)u.cost=x.cost}
-  else S.funds.push({code:x.name,name:x.name,ccy:x.ccy=='USD'?'USD':'TWD',cost:x.cost>0?x.cost:x.mv,mv:x.mv});
-  n++});return n}
-async function syncFunds(){if(!S.sid)return 0;try{const L=parseFunds(await gcsv(S.gid?'&gid='+S.gid:''));return L&&L.length?applyFunds(L):0}catch(e){return 0}}
+ return{px,fx,idx}}
 async function sync(){
  if(S.src=='yahoo')return syncYahoo();
  if(!S.sid){say('請先貼上試算表 ID');openTab('pf');return}
- say('更新中…');await updateFx();
+ say('更新中…');
  try{
   let R=null;
   try{R=parseOne(await gcsv(S.gid?'&gid='+S.gid:''))}catch(e){}
@@ -239,14 +209,14 @@ async function sync(){
    try{const x=await sheet('Index');const n=x.slice(1,9).map(r=>[r[0],r[1],num(r[2]),num(r[3])]);if(n.length&&n.every(r=>r[2]!=null))R.idx=n}catch(e){}
   }
   if(!Object.keys(R.px).length)throw 0;
-  S.px=R.px;const nf=R.funds&&R.funds.length?applyFunds(R.funds):0;
-  if(okfx(R.fx)&&!S.fxLock&&!/即時/.test(S.fxSrc)){S.fx=R.fx;S.fxSrc='試算表'}
+  S.px=R.px;
+  if(!S.fxLock){if(okfx(R.fx)){S.fx=R.fx;S.fxSrc='試算表'}else await updateFx()}
   if(R.idx)S.idx=R.idx;
-  S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${Object.keys(R.px).length} 檔`+(nf?`、基金 ${nf} 檔`:'')+`　${S.t}`);
- }catch(e){say('讀取失敗：請確認試算表 ID、分享權限（知道連結者可檢視），若資料不在第一個分頁請貼上含 gid 的完整網址')}
+  S.t=new Date().toLocaleString('zh-TW');save();render();say(`已更新 ${Object.keys(R.px).length} 檔　${S.t}`);
+ }catch(e){say('試算表連線失敗，改用 Yahoo 補抓…');return syncYahoo(1)}
 }
 let tm;const timer=()=>{clearInterval(tm);if(S.auto)tm=setInterval(sync,120000)};
 function openTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.id==id));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.t==id))}
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>openTab(b.dataset.t));
-render();timer();if(S.auto||S.px&&Object.keys(S.px).length==0)sync();else if(S.t)say('上次更新 '+S.t);
+render();timer();if((S.sid||S.src=='yahoo')&&(S.auto||!Object.keys(S.px).length))sync();else if(S.t)say('上次更新 '+S.t);
 </script></body></html>
