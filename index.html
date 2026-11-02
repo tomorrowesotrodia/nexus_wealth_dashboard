@@ -99,7 +99,7 @@ function render(){
  // tx
  const ts=Object.keys(D.meta).concat(['TWD_TD','USD_TD','CASH']);
  if(!$('nt')){$('txform').innerHTML=`<input type="date" id="nd"><input id="nt" list="tl" placeholder="代碼"><datalist id="tl">${[...new Set(ts)].map(x=>`<option>${x}`).join('')}</datalist><select id="ny"><option>Buy<option>Sell</select><input type="text" inputmode="decimal" id="ns" placeholder="股數" oninput="fIn(this,6)"><input type="text" inputmode="decimal" id="np" placeholder="單價(原幣)" oninput="fIn(this,4)"><input type="text" inputmode="decimal" id="nf" placeholder="手續費" oninput="fIn(this,2)"><input type="text" inputmode="decimal" id="nx" placeholder="交易稅" oninput="fIn(this,2)"><select id="nb">${['國泰','玉山','將來','華南','台新','中國信託'].map(x=>`<option>${x}`).join('')}</select><button class="b" onclick="addTx()">＋ 新增</button>`;$('nd').valueAsDate=new Date()}
- tbl('ttx',['日期','代碼','類別','股數','單價','手續費(TWD)','交易稅','平台','成交總額(TWD)',''],S.tx.map((t,i)=>[i,t]).reverse().map(([i,t])=>`<tr><td>${t[0]}</td><td class="l">${t[1]}</td><td class="${t[2]=='Buy'?'pos':'neg'}">${t[2]}</td><td>${f(t[3],4)}</td><td>${f(t[4],2)}</td><td>${f(t[5],2)}</td><td>${f(t[6],2)}</td><td>${t[7]}</td><td>${f(t[8])}</td><td><button class="x" onclick="S.tx.splice(${i},1);save();render()">✕</button></td></tr>`));
+ tbl('ttx',['日期','代碼','類別','股數','單價','手續費(TWD)','交易稅','平台','成交總額(TWD)',''],S.tx.map((t,i)=>[i,t]).reverse().map(([i,t])=>i===EI?txEditRow(i):`<tr><td>${t[0]}</td><td class="l">${t[1]}</td><td class="${t[2]=='Buy'?'pos':'neg'}">${t[2]}</td><td>${f(t[3],4)}</td><td>${f(t[4],2)}</td><td>${f(t[5],2)}</td><td>${f(t[6],2)}</td><td>${t[7]}</td><td>${f(t[8])}</td><td style="white-space:nowrap"><button class="x" onclick="txEdit(${i})">✎</button><button class="x" onclick="txDel(${i})">✕</button></td></tr>`));
  // portfolio
  const R=c.rows.sort((a,b)=>b.mv-a.mv);
  tbl('tpf',['代碼','名稱','類別','持有股數','平均成本','目前單價','成本(TWD)','市值(TWD)','未實現損益','報酬率','今日漲跌'],R.map(r=>{
@@ -124,6 +124,18 @@ const fx2=n=>isNaN(n)?'-':Number(n).toFixed(2);
 const pn=v=>parseFloat(String(v).replace(/,/g,''));
 function setFund(u,k,v){S.funds[u][k]=parseFloat(v.replace(/,/g,''))||0;save();render()}
 function goalIn(el){const d=el.value.replace(/\D/g,'');S.goal=+d||0;el.value=d?f(+d):'';save();renderMain()}
+let EI=-1,ED=null;
+function txEdit(i){EI=i;ED=S.tx[i].slice();render()}
+function txCancel(){EI=-1;ED=null;render()}
+function txDel(i){if(confirm('確定刪除這筆明細？')){if(EI===i){EI=-1;ED=null}S.tx.splice(i,1);save();render()}}
+function txSet(k,v){ED[k]=v}
+function txEditRow(i){const e=ED,inp=(k,n,w)=>`<td><input type="text" inputmode="decimal" style="width:${w}px" value="${e[k]}" oninput="fIn(this,${n});txSet(${k},pn(this.value)||0)"></td>`;
+ return `<tr><td><input type="date" value="${e[0]}" onchange="txSet(0,this.value)"></td><td class="l"><input style="width:80px" value="${e[1]}" onchange="txSet(1,this.value.trim())"></td><td><select onchange="txSet(2,this.value)"><option${e[2]=='Buy'?' selected':''}>Buy<option${e[2]=='Sell'?' selected':''}>Sell</select></td>${inp(3,6,80)}${inp(4,4,80)}${inp(5,2,70)}${inp(6,2,70)}<td><select onchange="txSet(7,this.value)">${[...new Set(['國泰','玉山','將來','華南','台新','中國信託',e[7]])].map(x=>`<option${x==e[7]?' selected':''}>${x}`).join('')}</select></td><td>${f(e[8])}</td><td style="white-space:nowrap"><button class="x" style="color:var(--g,green)" onclick="txSave()">✔</button><button class="x" onclick="txCancel()">✕</button></td></tr>`}
+function txSave(){const e=ED,o=S.tx[EI];if(!e[0]||!e[1]||!e[3]||!e[4])return alert('請填日期、代碼、股數、單價');
+ const m=D.meta[e[1]],usd=(m&&m.ccy=='USD')||e[1]=='USD_TD';
+ if(!m&&!DEP.includes(e[1]))return alert(e[1]+' 是未知代碼，請先用上方表單新增該代碼的交易以設定類別');
+ if(e[3]!==o[3]||e[4]!==o[4]||e[1]!==o[1])e[8]=Math.round(e[3]*e[4]*(usd?S.fx:1)*100)/100;
+ S.tx[EI]=e;EI=-1;ED=null;S.tx.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);save();render()}
 function addTx(){const t=[$('nd').value,$('nt').value.trim(),$('ny').value,pn($('ns').value)||0,pn($('np').value)||0,pn($('nf').value)||0,pn($('nx').value)||0,$('nb').value];
  if(!t[0]||!t[1]||!t[3]||!t[4])return alert('請填日期、代碼、股數、單價');
  if(!D.meta[t[1]]&&!DEP.includes(t[1])){const c=prompt(t[1]+' 是新代碼，請輸入類別：1=美股(USD) 2=台股(TWD)');if(c!='1'&&c!='2')return;D.meta[t[1]]={name:t[1],cat:c=='1'?'美股':'台股',ccy:c=='1'?'USD':'TWD',p:t[4],chg:0};S.meta=D.meta}
