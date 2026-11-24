@@ -188,7 +188,7 @@ function sp(j){const out={},L=(j.spark&&j.spark.result)||Object.values(j).filter
 async function pool(items,fn,n){const out=[];let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<items.length){const k=i++;try{out[k]=await fn(items[k])}catch(e){out[k]=null}}}));return out}
 const okfx=v=>v>20&&v<50;
 async function updateFx(){
- if(S.fxLock)return;
+ if(S.fxLock||SHEETFX)return;
  const src=[async()=>(await yq('USDTWD=X')).p,async()=>(await(await fetch('https://open.er-api.com/v6/latest/USD')).json()).rates.TWD,async()=>(await(await fetch('https://api.frankfurter.app/latest?from=USD&to=TWD')).json()).rates.TWD];
  for(const [i,fn] of src.entries())try{const v=await fn();if(okfx(v)){S.fx=v;S.fxSrc=['Yahoo','ExchangeRate-API','Frankfurter'][i]+' 即時';save();render();return true}}catch(e){}
  return false}
@@ -222,7 +222,8 @@ function parseOne(g){ // 單一分頁：依標題文字自動定位
   if(n.length&&n.every(r=>r[2]!=null))idx=n}
  return{px,fx,idx}}
 const fnum=x=>{const v=parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''));return isNaN(v)?null:v};
-let FM='';
+let FM='',SHEETFX=false;
+function parseFx(g){for(let i=0;i<g.length;i++)for(let j=0;j<g[i].length;j++){const x=nm(g[i][j]);if(x.includes('現匯率')&&/US/i.test(x)){const v=num((g[i+1]||[])[j]);if(okfx(v))return v}}return null}
 function parseFunds(g){ // 讀試算表的基金區塊：基金名稱 / 幣別 / 成本 / 市值
  const hr=g.findIndex(r=>r.some(c=>nm(c)=='基金名稱'));if(hr<0)return null;
  const H=g[hr].map(nm),cN=H.indexOf('基金名稱'),cY=H.findIndex(x=>x.includes('幣別')),cC=H.findIndex((x,i)=>i>cN&&x.includes('成本')),cV=H.findIndex((x,i)=>i>cN&&x.includes('市值'));
@@ -230,8 +231,8 @@ function parseFunds(g){ // 讀試算表的基金區塊：基金名稱 / 幣別 /
  for(let i=hr+1;i<g.length&&nm(g[i][cN]);i++){const mv=fnum(g[i][cV]);if(mv==null)continue;const cost=cC>=0?fnum(g[i][cC]):null;o.push({name:g[i][cN].trim(),ccy:/US/i.test(g[i][cY]||'')?'USD':'TWD',cost,mv})}
  return o}
 async function syncFunds(){ // 依名稱更新基金市值/成本；試算表有、但這裡沒有的基金會新增
- FM='';if(!S.sid){FM='基金未更新：請在上方貼上試算表 ID';return 0}let L;
- try{L=parseFunds(await gcsv(S.gid?'&gid='+S.gid:''))}catch(e){FM='基金未更新：讀不到試算表（請確認已設為「知道連結的人可檢視」）';return 0}
+ FM='';SHEETFX=false;if(!S.sid){FM='基金未更新：請在上方貼上試算表 ID';return 0}let L;
+ try{const g=await gcsv(S.gid?'&gid='+S.gid:'');const v=parseFx(g);if(v&&!S.fxLock){S.fx=v;S.fxSrc='試算表';SHEETFX=true}L=parseFunds(g)}catch(e){FM='基金未更新：讀不到試算表（請確認已設為「知道連結的人可檢視」）';return 0}
  if(!L||!L.length){FM='基金未更新：試算表找不到「基金名稱／成本／市值」欄位或沒有資料';return 0}let n=0,add=0;
  L.forEach(u=>{let f=S.funds.find(z=>nm(z.name)==nm(u.name));
   if(!f){f={code:u.name,name:u.name,ccy:u.ccy,cost:0,mv:0,plat:'未指定'};S.funds.push(f);add++}
