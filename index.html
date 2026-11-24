@@ -39,6 +39,7 @@ small,.note{color:var(--lt);font-size:12px}#msg{font-size:12px;color:var(--lt);m
 
 <div id="tx" class="tab"><h2>進出明細</h2><div class="card"><div class="row" id="txform"></div><small>新增交易後，Portfolio / Account / P/L 會自動重算。資料存於此瀏覽器，可用下方按鈕匯出 / 匯入 JSON 備份。</small>
 <div class="row" style="margin-top:8px"><button class="b" onclick="exp()">匯出備份</button><button class="b" style="background:var(--r)" onclick="wipe()">清除本機資料</button><input type="file" id="imp" onchange="imp(this)"></div>
+<div class="row" style="margin-top:8px"><b>篩選股票</b><select id="tf" onchange="TF=this.value;EI=-1;ED=null;render()"></select><button class="b" onclick="splitAdj()">⚖ 分割調整</button></div><div id="tfi" class="note" style="margin:0 12px 8px"></div>
 <table id="ttx"></table></div></div>
 <div id="pf" class="tab"><h2>資產明細</h2><div class="card"><div class="row"><b>股價來源</b><select id="src" onchange="S.src=this.value;save();render()"><option value="sheet">Google 試算表<option value="yahoo">Yahoo Finance</select>
 <span id="sheetbox"><input id="sid" style="max-width:300px" placeholder="試算表 ID 或網址" onchange="setSid(this.value)"></span>
@@ -63,24 +64,29 @@ const cl=n=>n>0?'pos':n<0?'neg':'';
 const cell=(v,d=0,c=true)=>`<td class="${c?cl(v):''}">${f(v,d)}</td>`;
 const tbl=(id,h,rows)=>$(id).innerHTML='<thead><tr>'+h.map((x,i)=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody>';
 
+function lot(o,sg,n,pr,tw){ // 移動加權平均：買入累加股數與成本；賣出按平均成本等比例沖銷，回傳此筆已實現損益
+ if(sg>0){o.ls+=n;o.co+=n*Math.abs(pr);o.ct+=tw;return 0}
+ const k=Math.min(n,o.ls),r=o.ls>1e-9?k/o.ls:0,rc=o.ct*r,g=(n?tw*k/n:0)-rc;
+ o.co-=o.co*r;o.ct-=rc;o.ls-=k;if(o.ls<1e-9){o.ls=0;o.co=0;o.ct=0}return g}
 function calc(){
  const fx=S.fx,P={},T={fee:0,tax:0};
  S.tx.forEach(t=>{const m=D.meta[t[1]]||{ccy:'TWD',cat:'台股',name:t[1]};const sg=t[2]=='Sell'?-1:1,q=sg*t[3];
-  const p=P[t[1]]=P[t[1]]||{k:t[1],m,sh:0,bq:0,bt:0,cf:0,plat:{}};
+  const p=P[t[1]]=P[t[1]]||{k:t[1],m,sh:0,ls:0,co:0,ct:0,rz:0,cf:0,plat:{}};
   p.sh+=q;p.cf-=sg*t[8];T.fee+=t[5];T.tax+=t[6];
   p.dep=(p.dep||0)+sg*t[3]*Math.abs(t[4]);
-  const a=p.plat[t[7]]=p.plat[t[7]]||{sh:0,bq:0,bt:0};a.sh+=q;if(sg>0){p.bq+=t[3];p.bt+=t[8];a.bq+=t[3];a.bt+=t[8]}});
+  const a=p.plat[t[7]]=p.plat[t[7]]||{sh:0,ls:0,co:0,ct:0};a.sh+=q;
+  p.rz+=lot(p,sg,t[3],t[4],t[8]);lot(a,sg,t[3],t[4],t[8])});
  const rows=[],cat={美股:0,台股:0,基金:0,現金:0,定存USD:0,'定存(台幣)':0},acc={};
  let realized=0;
  Object.values(P).forEach(p=>{
-  if(Math.abs(p.sh)<1e-6&&!DEP.includes(p.k))realized+=p.cf;
+  if(!DEP.includes(p.k))realized+=p.rz;
   if(p.k=='TWD_TD')cat['定存(台幣)']+=p.dep;else if(p.k=='USD_TD')cat.定存USD+=p.dep*fx;else if(p.k=='CASH')cat.現金+=p.dep;
   if(DEP.includes(p.k)||Math.abs(p.sh)<1e-6)return;
-  const usd=p.m.ccy=='USD',x=usd?fx:1,live=S.px[p.k],mn=S.man[p.k],price=mn!=null?mn:live?live.p:(p.m.p||p.bt/p.bq/x),chg=live?live.c:p.m.chg,src=mn!=null?'手動':live?'即時':'備份';
-  const mv=p.sh*price*x,cost=p.bt/p.bq*p.sh,day=mv*(chg||0);
-  rows.push({src,k:p.k,name:p.m.name,cat:p.m.cat,ccy:p.m.ccy,sh:p.sh,avg:p.bt/p.bq/x,price,mv,cost,pnl:mv-cost,day,chg});
+  const usd=p.m.ccy=='USD',x=usd?fx:1,avgO=p.ls>1e-9?p.co/p.ls:0,live=S.px[p.k],mn=S.man[p.k],price=mn!=null?mn:live?live.p:(p.m.p||avgO),chg=live?live.c:p.m.chg,src=mn!=null?'手動':live?'即時':'備份';
+  const mv=p.sh*price*x,cost=p.ct,day=mv*(chg||0);
+  rows.push({src,k:p.k,name:p.m.name,cat:p.m.cat,ccy:p.m.ccy,sh:p.sh,avg:avgO,price,mv,cost,pnl:mv-cost,day,chg});
   cat[p.m.cat]+=mv;
-  Object.entries(p.plat).forEach(([b,a])=>{if(Math.abs(a.sh)<1e-6)return;const c=a.bt/a.bq*a.sh;const A=acc[b]=acc[b]||{cost:0,pnl:0};A.cost+=c;A.pnl+=a.sh*price*x-c});
+  Object.entries(p.plat).forEach(([b,a])=>{if(Math.abs(a.sh)<1e-6)return;const c=a.ct;const A=acc[b]=acc[b]||{cost:0,pnl:0};A.cost+=c;A.pnl+=a.sh*price*x-c});
  });
  S.funds.forEach(u=>{const x=u.ccy=='USD'?fx:1,mv=u.mv*x,cost=u.cost*x;
   rows.push({k:u.code,name:u.name,cat:'基金',ccy:u.ccy,fund:1,sh:1,avg:u.cost,price:null,mv,cost,pnl:mv-cost,day:0});
@@ -99,7 +105,10 @@ function render(){
  // tx
  const ts=Object.keys(D.meta).concat(['TWD_TD','USD_TD','CASH']);
  if(!$('nt')){$('txform').innerHTML=`<input type="date" id="nd"><input id="nt" list="tl" placeholder="代碼"><datalist id="tl">${[...new Set(ts)].map(x=>`<option>${x}`).join('')}</datalist><select id="ny"><option>Buy<option>Sell</select><input type="text" inputmode="decimal" id="ns" placeholder="股數" oninput="fIn(this,6)"><input type="text" inputmode="decimal" id="np" placeholder="單價(原幣)" oninput="fIn(this,4)"><input type="text" inputmode="decimal" id="nf" placeholder="手續費" oninput="fIn(this,2)"><input type="text" inputmode="decimal" id="nx" placeholder="交易稅" oninput="fIn(this,2)"><select id="nb">${['國泰','玉山','將來','華南','台新','中國信託'].map(x=>`<option>${x}`).join('')}</select><button class="b" onclick="addTx()">＋ 新增</button>`;$('nd').valueAsDate=new Date()}
- tbl('ttx',['日期','代碼','類別','股數','單價','手續費(TWD)','交易稅','平台','成交總額(TWD)',''],S.tx.map((t,i)=>[i,t]).reverse().map(([i,t])=>i===EI?txEditRow(i):`<tr><td>${t[0]}</td><td class="l">${t[1]}</td><td class="${t[2]=='Buy'?'pos':'neg'}">${t[2]}</td><td>${f(t[3],4)}</td><td>${f(t[4],2)}</td><td>${f(t[5],2)}</td><td>${f(t[6],2)}</td><td>${t[7]}</td><td>${f(t[8])}</td><td style="white-space:nowrap"><button class="x" onclick="txEdit(${i})">✎</button><button class="x" onclick="txDel(${i})">✕</button></td></tr>`));
+ const tk=[...new Set(S.tx.map(t=>t[1]))].sort();if(TF&&!tk.includes(TF))TF='';
+ $('tf').innerHTML='<option value="">全部'+tk.map(k=>`<option value="${k}"${k==TF?' selected':''}>${k}${D.meta[k]&&D.meta[k].name!=k?' '+D.meta[k].name:''}`).join('');$('tf').value=TF;
+ const fr=c.rows.find(r=>r.k==TF);$('tfi').textContent=TF?(fr?`${TF}：持有 ${f(fr.sh,4)} 股，平均成本 ${f(fr.avg,4)} ${fr.ccy}，成本 ${f(fr.cost)} TWD`:'目前無持股')+`　共 ${S.tx.filter(t=>t[1]==TF).length} 筆`:'';
+ tbl('ttx',['日期','代碼','類別','股數','單價','手續費(TWD)','交易稅','平台','成交總額(TWD)',''],S.tx.map((t,i)=>[i,t]).reverse().filter(([i,t])=>!TF||t[1]==TF||i===EI).map(([i,t])=>i===EI?txEditRow(i):`<tr><td>${t[0]}</td><td class="l">${t[1]}</td><td class="${t[2]=='Buy'?'pos':'neg'}">${t[2]}</td><td>${f(t[3],4)}</td><td>${f(t[4],2)}</td><td>${f(t[5],2)}</td><td>${f(t[6],2)}</td><td>${t[7]}</td><td>${f(t[8])}</td><td style="white-space:nowrap"><button class="x" onclick="txEdit(${i})">✎</button><button class="x" onclick="txDel(${i})">✕</button></td></tr>`));
  // portfolio
  const R=c.rows.sort((a,b)=>b.mv-a.mv);
  tbl('tpf',['代碼','名稱','類別','持有股數','平均成本','目前單價','成本(TWD)','市值(TWD)','未實現損益','報酬率','今日漲跌'],R.map(r=>{
@@ -124,17 +133,23 @@ const fx2=n=>isNaN(n)?'-':Number(n).toFixed(2);
 const pn=v=>parseFloat(String(v).replace(/,/g,''));
 function setFund(u,k,v){S.funds[u][k]=parseFloat(v.replace(/,/g,''))||0;save();render()}
 function goalIn(el){const d=el.value.replace(/\D/g,'');S.goal=+d||0;el.value=d?f(+d):'';save();renderMain()}
-let EI=-1,ED=null;
+let EI=-1,ED=null,TF='';
 function txEdit(i){EI=i;ED=S.tx[i].slice();render()}
 function txCancel(){EI=-1;ED=null;render()}
 function txDel(i){if(confirm('確定刪除這筆明細？')){if(EI===i){EI=-1;ED=null}S.tx.splice(i,1);save();render()}}
 function txSet(k,v){ED[k]=v}
+function splitAdj(){if(!TF)return alert('請先在「篩選股票」選擇要分割的股票');
+ const n=parseFloat(prompt(TF+' 分割比例：1 股變成幾股？\n一拆五請輸入 5；反向合併（5 併 1）請輸入 0.2','5'));if(!n||n<=0||n==1)return;
+ const dt=(prompt('分割生效日（此日期「之前」的交易會被調整，格式 YYYY-MM-DD）。\n留空＝調整該股票全部明細','')||'').trim();
+ const L=S.tx.filter(t=>t[1]==TF&&(!dt||t[0]<dt));if(!L.length)return alert('沒有符合的明細');
+ if(!confirm(`將調整 ${L.length} 筆 ${TF} 明細：股數 ×${n}、單價 ÷${n}，成交總額（成本）不變。確定？`))return;
+ const r6=x=>Math.round(x*1e6)/1e6;L.forEach(t=>{t[3]=r6(t[3]*n);t[4]=r6(t[4]/n)});EI=-1;ED=null;save();render()}
 function txEditRow(i){const e=ED,inp=(k,n,w)=>`<td><input type="text" inputmode="decimal" style="width:${w}px" value="${e[k]}" oninput="fIn(this,${n});txSet(${k},pn(this.value)||0)"></td>`;
  return `<tr><td><input type="date" value="${e[0]}" onchange="txSet(0,this.value)"></td><td class="l"><input style="width:80px" value="${e[1]}" onchange="txSet(1,this.value.trim())"></td><td><select onchange="txSet(2,this.value)"><option${e[2]=='Buy'?' selected':''}>Buy<option${e[2]=='Sell'?' selected':''}>Sell</select></td>${inp(3,6,80)}${inp(4,4,80)}${inp(5,2,70)}${inp(6,2,70)}<td><select onchange="txSet(7,this.value)">${[...new Set(['國泰','玉山','將來','華南','台新','中國信託',e[7]])].map(x=>`<option${x==e[7]?' selected':''}>${x}`).join('')}</select></td><td>${f(e[8])}</td><td style="white-space:nowrap"><button class="x" style="color:var(--g,green)" onclick="txSave()">✔</button><button class="x" onclick="txCancel()">✕</button></td></tr>`}
 function txSave(){const e=ED,o=S.tx[EI];if(!e[0]||!e[1]||!e[3]||!e[4])return alert('請填日期、代碼、股數、單價');
  const m=D.meta[e[1]],usd=(m&&m.ccy=='USD')||e[1]=='USD_TD';
  if(!m&&!DEP.includes(e[1]))return alert(e[1]+' 是未知代碼，請先用上方表單新增該代碼的交易以設定類別');
- if(e[3]!==o[3]||e[4]!==o[4]||e[1]!==o[1])e[8]=Math.round(e[3]*e[4]*(usd?S.fx:1)*100)/100;
+ const op=o[3]*o[4],ep=e[3]*e[4];if(e[1]!==o[1]||Math.abs(ep-op)>1e-6*Math.max(1,Math.abs(op)))e[8]=Math.round(ep*(e[1]===o[1]&&op>0?o[8]/op:(usd?S.fx:1))*100)/100;
  S.tx[EI]=e;EI=-1;ED=null;S.tx.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);save();render()}
 function addTx(){const t=[$('nd').value,$('nt').value.trim(),$('ny').value,pn($('ns').value)||0,pn($('np').value)||0,pn($('nf').value)||0,pn($('nx').value)||0,$('nb').value];
  if(!t[0]||!t[1]||!t[3]||!t[4])return alert('請填日期、代碼、股數、單價');
@@ -144,7 +159,8 @@ function addTx(){const t=[$('nd').value,$('nt').value.trim(),$('ny').value,pn($(
 const TN={tmain:'Main',tpf:'Portfolio',ttx:'Transactions',tdg:'Daily Gain',tac:'Account',tpl:'P&L'};
 const tcsv=id=>[...$(id).rows].map(r=>[...r.cells].map(c=>{const i=c.querySelector('input');let v=(i?i.value:c.innerText).replace(/\s+/g,' ').trim();if(!i&&/^[-\d,.]+$/.test(v)&&v.length>1)v=v.replace(/,/g,'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n');
 function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([type=='csv'?'\ufeff'+text:text],{type:type=='csv'?'text/csv;charset=utf-8':'application/json'}));a.download=name;a.click()}
-function doExp(){const v=$('exs').value,d=new Date().toISOString().slice(0,10);render();
+function doExp(){const tf0=TF;TF='';try{doExp2()}finally{TF=tf0;render()}}
+function doExp2(){const v=$('exs').value,d=new Date().toISOString().slice(0,10);render();
  if(v=='json')return exp();
  if(v=='all')return dl(`nexus_all_${d}.csv`,Object.keys(TN).map(k=>TN[k]+'\n'+tcsv(k)).join('\n\n'),'csv');
  dl(`nexus_${TN[v].replace(/\W/g,'')}_${d}.csv`,tcsv(v),'csv')}
