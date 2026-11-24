@@ -64,29 +64,28 @@ const cl=n=>n>0?'pos':n<0?'neg':'';
 const cell=(v,d=0,c=true)=>`<td class="${c?cl(v):''}">${f(v,d)}</td>`;
 const tbl=(id,h,rows)=>$(id).innerHTML='<thead><tr>'+h.map((x,i)=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody>';
 
-function lot(o,sg,n,pr,tw){ // 移動加權平均：買入累加股數與成本；賣出按平均成本等比例沖銷，回傳此筆已實現損益
- if(sg>0){o.ls+=n;o.co+=n*Math.abs(pr);o.ct+=tw;return 0}
- const k=Math.min(n,o.ls),r=o.ls>1e-9?k/o.ls:0,rc=o.ct*r,g=(n?tw*k/n:0)-rc;
- o.co-=o.co*r;o.ct-=rc;o.ls-=k;if(o.ls<1e-9){o.ls=0;o.co=0;o.ct=0}return g}
+function avgCost(p,usd){ // 同 Portfolio 分頁：美股=買入(股數×單價)總和÷目前持股；台股=買入總額÷買入股數（只計仍有持股的券商）
+ if(usd)return Math.abs(p.sh)>1e-9?p.bo/p.sh:0;
+ let bo=0,bs=0;Object.values(p.plat).forEach(a=>{if(a.sh>1e-6){bo+=a.bo;bs+=a.bs}});return bs>0?bo/bs:0}
 function calc(){
  const fx=S.fx,P={},T={fee:0,tax:0};
  S.tx.forEach(t=>{const m=D.meta[t[1]]||{ccy:'TWD',cat:'台股',name:t[1]};const sg=t[2]=='Sell'?-1:1,q=sg*t[3];
-  const p=P[t[1]]=P[t[1]]||{k:t[1],m,sh:0,ls:0,co:0,ct:0,rz:0,cf:0,plat:{}};
+  const p=P[t[1]]=P[t[1]]||{k:t[1],m,sh:0,bo:0,bt:0,sp:0,cf:0,plat:{}};
   p.sh+=q;p.cf-=sg*t[8];T.fee+=t[5];T.tax+=t[6];
   p.dep=(p.dep||0)+sg*t[3]*Math.abs(t[4]);
-  const a=p.plat[t[7]]=p.plat[t[7]]||{sh:0,ls:0,co:0,ct:0};a.sh+=q;
-  p.rz+=lot(p,sg,t[3],t[4],t[8]);lot(a,sg,t[3],t[4],t[8])});
+  const a=p.plat[t[7]]=p.plat[t[7]]||{sh:0,bo:0,bt:0,bs:0,sp:0};a.sh+=q;if(sg>0)a.bs+=t[3];
+  [p,a].forEach(o=>{if(sg>0){o.bo+=t[3]*Math.abs(t[4]);o.bt+=t[8]}else o.sp+=t[8]})}); // 平均成本 = 歷史買入(股數×單價)總和 ÷ 目前持股
  const rows=[],cat={美股:0,台股:0,基金:0,現金:0,定存USD:0,'定存(台幣)':0},acc={};
  let realized=0;
  Object.values(P).forEach(p=>{
-  if(!DEP.includes(p.k))realized+=p.rz;
+  if(!DEP.includes(p.k))realized+=Math.abs(p.sh)<1e-6?p.cf:0;
   if(p.k=='TWD_TD')cat['定存(台幣)']+=p.dep;else if(p.k=='USD_TD')cat.定存USD+=p.dep*fx;else if(p.k=='CASH')cat.現金+=p.dep;
   if(DEP.includes(p.k)||Math.abs(p.sh)<1e-6)return;
-  const usd=p.m.ccy=='USD',x=usd?fx:1,avgO=p.ls>1e-9?p.co/p.ls:0,live=S.px[p.k],mn=S.man[p.k],price=mn!=null?mn:live?live.p:(p.m.p||avgO),chg=live?live.c:p.m.chg,src=mn!=null?'手動':live?'即時':'備份';
-  const mv=p.sh*price*x,cost=p.ct,day=mv*(chg||0);
+  const usd=p.m.ccy=='USD',x=usd?fx:1,avgO=avgCost(p,usd),live=S.px[p.k],mn=S.man[p.k],price=mn!=null?mn:live?live.p:(p.m.p||avgO),chg=live?live.c:p.m.chg,src=mn!=null?'手動':live?'即時':'備份';
+  const mv=p.sh*price*x,cost=usd?p.bt:avgO*p.sh,day=mv*(chg||0);
   rows.push({src,k:p.k,name:p.m.name,cat:p.m.cat,ccy:p.m.ccy,sh:p.sh,avg:avgO,price,mv,cost,pnl:mv-cost,day,chg});
   cat[p.m.cat]+=mv;
-  Object.entries(p.plat).forEach(([b,a])=>{if(Math.abs(a.sh)<1e-6)return;const c=a.ct;const A=acc[b]=acc[b]||{cost:0,pnl:0};A.cost+=c;A.pnl+=a.sh*price*x-c});
+  Object.entries(p.plat).forEach(([b,a])=>{if(Math.abs(a.sh)<1e-6)return;const c=usd?a.bt:(a.bs>0?a.bo/a.bs*a.sh:0);const A=acc[b]=acc[b]||{cost:0,pnl:0};A.cost+=c;A.pnl+=a.sh*price*x-c});
  });
  S.funds.forEach(u=>{const x=u.ccy=='USD'?fx:1,mv=u.mv*x,cost=u.cost*x;
   rows.push({k:u.code,name:u.name,cat:'基金',ccy:u.ccy,fund:1,sh:1,avg:u.cost,price:null,mv,cost,pnl:mv-cost,day:0});
